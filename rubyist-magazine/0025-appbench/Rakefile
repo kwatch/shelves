@@ -1,0 +1,104 @@
+namespace :fib do
+
+  n = 35
+  script = "fib-bench.rb"
+
+  desc "fib bench"
+  task :bench do |t|
+    sh "time ruby187 -s #{script} -N=#{n}"
+    sh "time ruby191 -s #{script} -N=#{n}"
+    sh "N=#{n} time rbx"
+  end
+
+end
+
+
+namespace :eruby do
+
+  n = 10000
+  script = 'eruby-bench.rb'
+
+  desc "eruby bench"
+  task :bench do |t|
+    sh "ruby187 -s #{script} -N=#{n}"
+    sh "ruby191 -s #{script} -N=#{n}"
+    #sh "N=#{n} rbx #{script}"
+    ENV['N'] = n.to_s; sh "rbx #{script}"
+  end
+
+  desc "eruby bench with HTML escape"
+  task :escape do |t|
+    sh "ruby187 -s #{script} -N=#{n} -e"
+    sh "ruby191 -s #{script} -N=#{n} -e"
+    #sh "N=#{n} E=true rbx #{script}"
+    ENV['N'] = n.to_s; ENV['E'] = 'true'; "rbx #{script}"
+  end
+
+  desc "eruby bench with HTML escape by CGIAlt"
+  task :cgialt do |t|
+    sh "ruby187 -s #{script} -N=#{n} -e -cgialt"
+  end
+
+end
+
+
+$DB_USER = 'user1'
+$DB_NAME = 'example1'
+
+namespace :blog do
+
+  desc "create blog-data.sql"
+  task :sql do |t|
+    sh "ruby blog-data.rb > blog-data.sql"
+  end
+
+  desc "import blog-data.sql"
+  task :data => [:sql] do |t|
+    sh "mysql -p -u #{$DB_USER} #{$DB_NAME} < blog-data.sql"
+  end
+
+  n = 10
+  desc "benchmark with database"
+  task :bench do |t|
+    sh "ruby187 -s blog-bench.rb -N=#{n}"
+  end
+
+end
+
+
+classpath = [
+  ".",
+  "/usr/local/java/velocity-1.6.1.jar", "/usr/local/java/velocity-1.6.1-dep.jar",
+  #"/usr/local/java/velocity-1.5.jar", "/usr/local/java/velocity-dep-1.5.jar",
+  "/usr/local/java/velocity-tools-1.4.jar", "velocity-tools-generic-1.4.jar", "velocity-tools-view-1.4.jar",
+].join(":")
+
+java_opt = "-server"
+#java_opt = ""
+
+namespace :java do
+
+  base = "StockBench1"
+
+  task :update do |t|
+    filename = "#{base}.java"
+    sh "erubis -l java view.jhtml > view.jhtml.java"
+    src = File.read("view.jhtml.java")
+    s1 = File.read(filename)
+    s2 = s1.sub(%r|^(/// BEGIN\n).*(/// END\n)|m) { "#{$1}#{src}#{$2}" }
+    File.open(filename, 'w') {|f| f.write(s2) } if s2 != s1
+  end
+
+  task :compile do |t|
+    sh "jc -classpath #{classpath} #{base}.java"
+  end
+
+  task :run => :compile do |t|
+    sh "java -classpath #{classpath} #{java_opt} #{base} 100000"
+  end
+
+  task :print => :compile do |t|
+    sh "java -classpath #{classpath} #{java_opt} #{base} 1"
+  end
+
+end
