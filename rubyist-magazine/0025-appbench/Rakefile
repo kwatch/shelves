@@ -1,3 +1,6 @@
+
+ENV.delete('RUBYLIB')
+
 namespace :fib do
 
   n = 35
@@ -62,6 +65,20 @@ namespace :blog do
   task :bench do |t|
     sh "ruby187 -s blog-bench.rb -N=#{n}"
     sh "ruby191 -s blog-bench.rb -N=#{n}"
+  end
+
+end
+
+
+namespace :htmlescape do
+
+  n = 100000
+  desc "benchmark of ERB::Util.h() and Erubis::XmlHelper.escape_xml()"
+  task :bench do
+    sh "ruby186 -s htmlescape-bench.rb -N=#{n}"
+    sh "ruby187 -s htmlescape-bench.rb -N=#{n}"
+    sh "ruby191 -s htmlescape-bench.rb -N=#{n}"
+    sh "N=#{n} rbx htmlescape-bench.rb"
   end
 
 end
