@@ -57,10 +57,11 @@ namespace :blog do
     sh "mysql -p -u #{$DB_USER} #{$DB_NAME} < blog-data.sql"
   end
 
-  n = 10
+  n = 100
   desc "benchmark with database"
   task :bench do |t|
     sh "ruby187 -s blog-bench.rb -N=#{n}"
+    sh "ruby191 -s blog-bench.rb -N=#{n}"
   end
 
 end

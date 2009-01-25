@@ -8,11 +8,10 @@ $DB   = 'example1'
 
 ## options provided by '-s'
 $N = ENV['N'] unless defined?($N)       # number to repeat
-$e = ENV['E'] unless defined?($e)       # escape html or not
 $L = ENV['L'] unless defined?($L)       # length of blog entries
 $N = ($N || 100).to_i
 $L = ($L || 10).to_i
-$e = $e == 'false' ? false : true
+$escape = !defined?($unescape)
 
 ##
 require "rubygems"
@@ -55,8 +54,7 @@ end
 ## view template
 filename = "blog-bench.rhtml"
 str = File.read(filename)
-escape = $e ? true : false
-eruby = Erubis::FastEruby.new(str, :filename=>filename, :escape=>escape)
+eruby = Erubis::FastEruby.new(str, :filename=>filename, :escape=>$escape)
 #def h(val)
 #  Erubis::XmlHelper.escape_xml(val)
 #end
