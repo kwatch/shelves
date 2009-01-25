@@ -12,8 +12,9 @@ create table blog_users (
   name        varchar(32)     not null unique,
   password    varchar(32)     not null,
   email       varchar(64)     not null,
-  created_at  datetime        not null,
-  updated_at  datetime        not null,
+  updated_at  timestamp       not null,
+  created_at  timestamp       not null,
+  deleted_at  timestamp       null default null,
   index blog_users_email(email)
 );
 
@@ -23,8 +24,9 @@ create table blog_entries(
   user_id     integer         not null references blog_users(id),
   title       varchar(200)    not null,
   body        text(4000)      not null,
-  created_at  datetime        not null,
-  updated_at  datetime        not null,
+  updated_at  timestamp       not null,
+  created_at  timestamp       not null,
+  deleted_at  timestamp       null default null,
   index blog_entries_user_id(user_id)
 );
 
@@ -35,8 +37,9 @@ create table blog_comments(
   user        varchar(32)     not null,
   uri         varchar(128)    ,
   body        text(1000)      not null,
-  created_at  datetime        not null,
-  deleted_at  datetime        ,
+  updated_at  timestamp       not null,
+  created_at  timestamp       not null,
+  deleted_at  timestamp       null default null,
   index blog_comments_entry_id(entry_id)
 );
 
@@ -46,19 +49,19 @@ END
 ### users
 puts "-- users"
 require 'digest/md5'
-n_users = 50
+n_users = 10
 (1..n_users).each do |i|
   name = "user%03d" % i
   email = "#{name}@mail.com"
   password = Digest::MD5.hexdigest("password%03d" % i)
   ts = "2000-01-01 12:34:56"
-  puts "insert into blog_users values(null, '#{name}', '#{email}', '#{password}', '#{ts}', '#{ts}');"
+  puts "insert into blog_users values(null, '#{name}', '#{email}', '#{password}', '#{ts}', '#{ts}', null);"
 end
 
 ### entries
 puts "-- entries"
 t = Time.mktime(2000, 1, 1)
-n_entries_per_user = 1000
+n_entries_per_user = 500
 body = DATA.read().gsub(/\r?\n/, ' ')
 (1..n_entries_per_user).each do |i|
   t2 = t.dup
@@ -66,7 +69,7 @@ body = DATA.read().gsub(/\r?\n/, ' ')
     t += 10
     title = "Title #{user_id}-#{i}"
     ts = t.strftime("%Y-%m-%d %H:%M:%S")
-    puts "insert into blog_entries values(null, #{user_id}, '#{title}', '#{body}', '#{ts}', '#{ts}');"
+    puts "insert into blog_entries values(null, #{user_id}, '#{title}', '#{body}', '#{ts}', '#{ts}', null);"
   end
   t = t2.dup + 60 * 60 * 24
 end
@@ -79,9 +82,9 @@ n_entries = n_users * n_entries_per_user
   uri  = "http://www.#{user}.com/"
   body = "comment-#{entry_id}"
   ts   = t.strftime("%Y-%m-%d %H:%M:%S")
-  puts "insert into blog_comments values (null, #{entry_id}, '#{user}', '#{uri}', '1-#{body}', '#{ts}', '#{ts}');"
+  puts "insert into blog_comments values (null, #{entry_id}, '#{user}', '#{uri}', '1-#{body}', '#{ts}', '#{ts}', null);"
   t += 30
-  puts "insert into blog_comments values (null, #{entry_id}, '#{user}', '#{uri}', '2-#{body}', '#{ts}', '#{ts}');"
+  puts "insert into blog_comments values (null, #{entry_id}, '#{user}', '#{uri}', '2-#{body}', '#{ts}', '#{ts}', null);"
   t += 30
 end
 
