@@ -11,7 +11,9 @@ $N = ENV['N'] unless defined?($N)       # number to repeat
 $L = ENV['L'] unless defined?($L)       # length of blog entries
 $N = ($N || 100).to_i
 $L = ($L || 10).to_i
-$escape = !defined?($unescape)
+$escape  = !defined?($unescape)
+$join    = !defined?($nojoin)
+$wherein = !defined?($nowherein)
 
 ##
 require "rubygems"
@@ -55,14 +57,13 @@ end
 filename = "blog-bench.rhtml"
 str = File.read(filename)
 eruby = Erubis::FastEruby.new(str, :filename=>filename, :escape=>$escape)
-#def h(val)
-#  Erubis::XmlHelper.escape_xml(val)
-#end
-include Erubis::XmlHelper
 
 ## SQL statements
 USERS_SQL = <<END
 select * from blog_users order by id;
+END
+USERS_SQL2 = <<END
+select * from blog_users where name = ?;
 END
 ENTRIES_SQL = <<END
 select blog_entries.* from blog_entries, blog_users
@@ -71,24 +72,33 @@ where blog_entries.user_id = blog_users.id
 order by blog_entries.id desc
 limit 0, #{$L}
 END
-COMMENTS_SQL = <<END
-select * from blog_comments
-where entry_id = ?
-order by id
+ENTRIES_SQL2 = <<END
+select * from blog_entries
+where blog_entries.user_id = ?
+order by blog_entries.id desc
+limit 0, #{$L}
 END
-COMMENTS_SQL2 = <<END
+COMMENTS_SQL = <<END
 select * from blog_comments
 where entry_id in (%s)
 order by id
 END
-#COMMENTS_SQL2 = <<END
-#select id, entry_id, user, uri, body, created_at from blog_comments
-#where entry_id in (%s)
-#order by id
-#END
+COMMENTS_SQL2 = <<END
+select * from blog_comments
+where entry_id = ?
+order by id
+END
 
 ## helper method for Mysql object
 class Mysql
+  def query_one(sql, *args)
+    stmt = self.prepare(sql)
+    stmt.execute(*args)
+    row = stmt.fetch
+    ret = block_given? ? yield(row) : row
+    stmt.free_result()
+    ret
+  end
   def query_all(sql, *args)
     stmt = self.prepare(sql)
     stmt.execute(*args)
@@ -102,27 +112,34 @@ end
 
 
 
-## entries
+## entries and comments
 def get_entries_by_user_name(conn, user_name)
+  ## entries
   #entries = conn.query(ENTRIES_SQL % user_name).fetch_all_as(BlogEntry)
-  entries = conn.query_all(ENTRIES_SQL, user_name) {|row| BlogEntry.new(*row) }
-  if false
-    entries.each do |entry|
-      #comments = conn.query(COMMENTS_SQL % entry.id).fetch_all_as(BlogComment)
-      comments = conn.query_all(COMMENTS_SQL, entry.id) {|row| BlogComment.new(*row) }
-    end
+  if $join
+    entries = conn.query_all(ENTRIES_SQL, user_name) {|row| BlogEntry.new(*row) }
   else
+    user = conn.query_one(USERS_SQL2, user_name) {|row| BlogUser.new(*row) }
+    entries = conn.query_all(ENTRIES_SQL2, user.id) {|row| BlogEntry.new(*row) }
+  end
+  ## comments
+  if $wherein
     entry_ids = entries.collect {|entry| entry.id }
     if entry_ids.empty?
       hash = {}
     else
       #comments = conn.query(COMMENTS_SQL2 % entry_ids.join(',')).fetch_all_as(BlogComment)
-      sql = COMMENTS_SQL2 % entry_ids.join(',')
+      sql = COMMENTS_SQL % entry_ids.join(',')
       comments = conn.query_all(sql) {|row| BlogComment.new(*row) }
       hash = comments.group_by {|comment| comment.entry_id }
     end
     entries.each do |entry|
       entry.comments = hash[entry.id] || []
+    end
+  else
+    entries.each do |entry|
+      #comments = conn.query(COMMENTS_SQL % entry.id).fetch_all_as(BlogComment)
+      comments = conn.query_all(COMMENTS_SQL2, entry.id) {|row| BlogComment.new(*row) }
     end
   end
   entries
