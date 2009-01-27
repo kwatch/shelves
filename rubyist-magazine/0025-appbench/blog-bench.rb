@@ -57,6 +57,8 @@ end
 filename = "blog-bench.rhtml"
 str = File.read(filename)
 eruby = Erubis::FastEruby.new(str, :filename=>filename, :escape=>$escape)
+include Erubis::XmlHelper
+alias h escape_xml
 
 ## SQL statements
 USERS_SQL = <<END
