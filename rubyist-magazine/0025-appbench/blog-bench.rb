@@ -1,3 +1,18 @@
+###
+### usage:
+###   ruby -s blog-bench.rb [-N=100] [-L=10] [-unescape] [-nojoin] [-nowherein] [-useindex]
+###
+### options:
+###   -N=100         : number to repeat
+###   -L=10          : length of blog entries
+###   -unescape      : don't escape HTML
+###   -nojoin        : use ENTRIES_SQL2 instead of ENTRIES_SQL
+###   -nowherein     : use COMMENTS_SQL2 instead of COMMENTS_SQL
+###   -useindex      : use 'primary' index instead of 'blog_entries_user_id' index
+###
+
+
+
 ## database information
 $HOST = 'localhost'
 $USER = 'user1'
