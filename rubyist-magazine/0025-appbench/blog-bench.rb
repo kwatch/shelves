@@ -91,6 +91,14 @@ where entry_id = ?
 order by id
 END
 
+
+
+
+if $useindex
+  [ENTRIES_SQL, ENTRIES_SQL2].each {|sql| sql.sub!(/from blog_entries/, '\& use index (primary)') }
+end
+
+
 ## helper method for Mysql object
 class Mysql
   def query_one(sql, *args)
